@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XX大学新生报到管理系统</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- ============ 公开迎新门户页（无需登录） ============ -->
+  <div id="public-view" class="public-view">
+    <header class="pub-header">
+      <div class="pub-header-inner">
+        <div class="pub-logo"><span class="pub-logo-icon">🎓</span> XX大学迎新服务网</div>
+        <button class="btn btn-primary" id="pub-login-btn">登录系统</button>
+      </div>
+    </header>
+
+    <section class="pub-hero">
+      <div class="pub-hero-slides" id="pub-slides">
+        <div class="pub-slide s1 active">
+          <div class="pub-slide-text">
+            <h1>你好，2026 级新同学</h1>
+            <p>线上预报到 · 材料上传 · 扫码核验，一站式完成入学报到</p>
+          </div>
+        </div>
+        <div class="pub-slide s2">
+          <div class="pub-slide-text">
+            <h1>足不出户，完成预报到</h1>
+            <p>信息填报 → 材料审核 → 领取报到二维码，手机上全部搞定</p>
+          </div>
+        </div>
+        <div class="pub-slide s3">
+          <div class="pub-slide-text">
+            <h1>到校扫码，秒速报到</h1>
+            <p>预报到完成后出示个人二维码，辅导员扫码即可完成现场核验</p>
+          </div>
+        </div>
+      </div>
+      <div class="pub-hero-dots" id="pub-dots"></div>
+    </section>
+
+    <section class="pub-section">
+      <h2 class="pub-section-title">📣 迎新公告</h2>
+      <div class="pub-notice-list" id="pub-notices"></div>
+    </section>
+
+    <section class="pub-section">
+      <h2 class="pub-section-title">🗺️ 线上报到流程</h2>
+      <div class="pub-steps">
+        <div class="pub-step"><div class="step-num">1</div><div class="step-t">登录系统</div><div class="step-d">学号 + 身份证后6位</div></div>
+        <div class="pub-step"><div class="step-num">2</div><div class="step-t">信息填报</div><div class="step-d">完善个人与联系信息</div></div>
+        <div class="pub-step"><div class="step-num">3</div><div class="step-t">材料上传</div><div class="step-d">身份证 / 通知书 / 证件照</div></div>
+        <div class="pub-step"><div class="step-num">4</div><div class="step-t">预报到完成</div><div class="step-d">审核通过生成二维码</div></div>
+        <div class="pub-step"><div class="step-num">5</div><div class="step-t">现场核验</div><div class="step-d">出示二维码扫码报到</div></div>
+      </div>
+    </section>
+
+    <section class="pub-section">
+      <h2 class="pub-section-title">🚪 角色入口</h2>
+      <div class="pub-entries">
+        <div class="pub-entry" data-role="student"><div class="entry-icon">🎒</div><div class="entry-t">新生入口</div><div class="entry-d">信息填报 · 材料上传 · 报到二维码</div></div>
+        <div class="pub-entry" data-role="counselor"><div class="entry-icon">👩‍🏫</div><div class="entry-t">辅导员入口</div><div class="entry-d">材料审核 · 扫码核验 · 数据导出</div></div>
+        <div class="pub-entry" data-role="admin"><div class="entry-icon">🛠️</div><div class="entry-t">管理员入口</div><div class="entry-d">数据导入 · 公告管理 · 可视化大屏</div></div>
+      </div>
+    </section>
+
+    <footer class="pub-footer">
+      <p>XX大学迎新工作办公室 · 咨询电话 010-88886666 · 邮箱 yingxin@xxu.edu.cn</p>
+      <p>地址：XX市大学路 1 号 大学生活动中心 210 室</p>
+    </footer>
+  </div>
+
+  <!-- ============ 登录弹窗 ============ -->
+  <div id="login-overlay" class="modal-overlay hidden">
+    <div class="modal login-modal">
+      <div class="modal-header"><h3>账号登录</h3><button class="modal-close" id="login-close">✕</button></div>
+      <div class="modal-body">
+        <div class="form-item">
+          <label>登录角色</label>
+          <select id="login-role">
+            <option value="student">新生</option>
+            <option value="counselor">辅导员</option>
+            <option value="admin">超级管理员</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label id="login-account-label">学号</label>
+          <input id="login-account" type="text" placeholder="请输入学号" />
+        </div>
+        <div class="form-item">
+          <label id="login-pwd-label">身份证后 6 位</label>
+          <input id="login-pwd" type="password" placeholder="请输入身份证后 6 位" />
+        </div>
+        <p class="login-hint" id="login-hint"></p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary btn-block" id="btn-login">登 录</button></div>
+    </div>
+  </div>
+
+  <!-- ============ 主应用（登录后） ============ -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">🎓</span>
+        <div><div class="brand-title">新生报到系统</div><div class="brand-sub">XX大学 · 2026级</div></div>
+      </div>
+      <nav class="nav-menu" id="nav-menu"></nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-screen hidden" id="btn-bigscreen">📺 可视化大屏</button>
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">A</div>
+          <div><div class="user-name" id="user-name">—</div><div class="user-role" id="user-role-text">—</div></div>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-block" id="btn-logout">退出登录</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumb" id="breadcrumb">—</div>
+        <div class="topbar-actions"><span class="date-text" id="date-text"></span></div>
+      </header>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+
+  <!-- ============ 可视化大屏（全屏覆盖层） ============ -->
+  <div id="bigscreen" class="bigscreen hidden">
+    <header class="bs-header">
+      <div class="bs-header-side left" id="bs-date"></div>
+      <h1 class="bs-title">XX大学迎新报到实时监控大屏</h1>
+      <div class="bs-header-side right">
+        <span class="bs-clock" id="bs-clock">--:--:--</span>
+        <button class="btn btn-ghost btn-sm" id="bs-exit">← 返回后台</button>
+      </div>
+    </header>
+
+    <div class="bs-grid">
+      <div class="bs-col">
+        <div class="bs-metrics" id="bs-metrics"></div>
+        <div class="bs-card grow">
+          <div class="bs-card-title">各院系新生分布</div>
+          <div class="bs-chart-box"><canvas id="bs-pie"></canvas></div>
+        </div>
+      </div>
+
+      <div class="bs-col mid">
+        <div class="bs-rate-card">
+          <div class="bs-rate">
+            <div class="rate-item"><span class="rate-num" id="bs-rate-online">0%</span><span class="rate-label">线上预报到率</span></div>
+            <div class="rate-divider"></div>
+            <div class="rate-item"><span class="rate-num green" id="bs-rate-offline">0%</span><span class="rate-label">现场报到率</span></div>
+          </div>
+        </div>
+        <div class="bs-card grow">
+          <div class="bs-card-title">各院系线上预报到人数统计</div>
+          <div class="bs-chart-box"><canvas id="bs-bar"></canvas></div>
+        </div>
+      </div>
+
+      <div class="bs-col">
+        <div class="bs-card">
+          <div class="bs-card-title">材料审核状态分布</div>
+          <div class="bs-chart-box"><canvas id="bs-dough"></canvas></div>
+        </div>
+        <div class="bs-card grow">
+          <div class="bs-card-title">⚡ 最新报到动态</div>
+          <div class="bs-ticker"><ul id="bs-ticker"></ul></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全局容器 -->
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+
+  <script src="js/data.js?v=20261018"></script>
+  <script src="js/charts.js?v=20261018"></script>
+  <script src="js/app.js?v=20261018"></script>
+</body>
+</html>
